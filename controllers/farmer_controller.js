@@ -1,10 +1,14 @@
 const User = require("../models/Users");
 const Farmer = require("../models/Farmer");
 const { generateToken } = require("../config/jwt");
+const bcrypt = require("bcryptjs");
 
 const registerFarmer = async (req, res) => {
+  let user = null;
+
   const {
     name,
+    password,
     contact,
     location, // Base User field
     landSize, // Farmer Profile field
@@ -43,7 +47,12 @@ const registerFarmer = async (req, res) => {
   if (contact.length !== 10) {
     return res.status(400).json({ msg: "Contact number must be 10 digits." });
   }
-  let user = null;
+  if (!password || password.length < 6) {
+    return res
+      .status(400)
+      .json({ msg: "Password is required and must be at least 6 characters." });
+  }
+
   try {
     //pre check for existing user
     let existingUser = await User.findOne({ contact });
@@ -57,8 +66,12 @@ const registerFarmer = async (req, res) => {
       return res.status(400).json({ msg: "Aadhar number already registered." });
     }
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     user = await User.create({
       name,
+      password: hashedPassword,
       contact,
       location,
       role: "farmer",
@@ -140,6 +153,7 @@ const updateFarmerProfile = async (req, res) => {
       certifications,
       aadhar_number,
     } = req.body;
+
     if (contact && contact.length !== 10) {
       return res.status(400).json({ msg: "Contact number must be 10 digits." });
     }
@@ -201,7 +215,8 @@ const updateFarmerProfile = async (req, res) => {
       farmerUpdate.certifications = certifications;
     if (aadhar_number !== undefined) farmerUpdate.aadhar_number = aadhar_number;
 
-    originalUser = await User.findById(userId);
+    // already cretated user and farmer
+    originalUser = await User.findById({ _id: userId, role: "farmer" });
     originalFarmer = await Farmer.findOne({ user_id: userId });
 
     if (!originalUser || !originalFarmer) {
@@ -258,11 +273,46 @@ const updateFarmerProfile = async (req, res) => {
       );
     }
     if (err.code === 11000) {
-      return res.status(400).json({ msg: "Aadhar number already exists." });
+      let msg = "Field value already exists.";
+      const field = Object.keys(err.keyPattern || {})[0];
+      if (field === "aadhar_number") {
+        msg = "Aadhar number already registered.";
+      }
+      if (field === "contact") {
+        msg = "Contact number already registered.";
+      }
+      return res.status(400).json({ msg });
     }
     console.error(err.message);
     res.status(500).send("Server Error");
   }
 };
 
-module.exports = { registerFarmer, getFarmerProfile, updateFarmerProfile };
+const loginFarmer = async (req, res) => {
+  const { contact, password } = req.body;
+  if (!contact || !password) {
+    return res.status(400).json({ msg: "Please provide contact and password" });
+  }
+  try {
+    const user = await User.findOne({ contact, role: "farmer" });
+    if (!user) {
+      return res.status(400).json({ msg: "Invalid credentials" });
+    }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Invalid credentials" });
+    }
+    const token = generateToken(user);
+    res.json({ token, userId: user._id });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
+};
+
+module.exports = {
+  registerFarmer,
+  getFarmerProfile,
+  updateFarmerProfile,
+  loginFarmer,
+};

@@ -4,6 +4,7 @@ const { Schema } = mongoose;
 const userSchema = new Schema(
   {
     name: { type: String, required: true },
+    password: { type: String, required: true },
     contact: { type: String, required: true, unique: true },
     location: { type: String, required: true },
     role: {
@@ -11,7 +12,8 @@ const userSchema = new Schema(
       enum: [
         "farmer",
         "middleman",
-        "transporter",
+        "indivisual_transporter",
+        "logisitics_company",
         "admin",
         "retailer",
         "customer",

@@ -92,3 +92,26 @@ GET /getAuditTrail/:qrId	Full traceability log for any crop
 
 
 ---
+
+{
+    "name":"robin",
+    "password":"random",
+    "contact":"8470808956",
+    "location":"japan",
+    "landSize":85.0,
+    "farming_exp":8,
+    "prefered_crop_type":"orange",
+    "certifications":"none",
+    "aadhar_number":"485217956325"
+}
+{
+  "name":"transporte1",
+    "contact":"4879563256",
+    "location":"USA",
+    "password":"kjdhsvfikjsbdfv",
+    "vehicle_number":"sodfijhsohdfn",
+    "license_number":"ikjhdsifcjbsdbfc",
+    "vehicle_type":"tuk-tuk",
+    "capacity_tons":30,
+    "available":true
+}
