@@ -1,0 +1,59 @@
+# --------------------
+# Node.js / npm
+# --------------------
+# Dependency directories
+/node_modules
+/jspm_packages
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Runtime data
+/pids
+/logs
+/runs
+
+# npm-generated lockfiles/info
+package-lock.json
+# yarn.lock (Often checked in for deterministic installs, uncomment if you prefer to ignore)
+
+# Test/Coverage reports
+/coverage
+/.nyc_output
+/mocha.opts
+
+# Mongoose/MongoDB specifics
+# Local database files (if not using an external service like Atlas)
+/data/db
+*.sqlite
+*.sqlite3
+/db/*.sqlite
+/db/*.sqlite3
+
+# Environment variables
+# CRITICAL: DO NOT commit sensitive configuration, keys, or passwords!
+.env
+.env.*
+!.env.example # Keep an example file, but ignore the real one
+
+# --------------------
+# IDE and OS Files
+# --------------------
+# VS Code
+.vscode/
+
+# IntelliJ / WebStorm
+.idea
+
+# macOS
+.DS_Store
+
+# Thumbnails/System
+Thumbs.db
+
+
+#custom
+.readme.txt
