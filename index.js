@@ -13,6 +13,7 @@ app.use(express.json());
 const auth_route = require("./routes/auth_route");
 const farmer_route = require("./routes/farmer_route");
 const indivisual_transporter_route = require("./routes/indivisual_transporter_route");
+const retailer_route = require("./routes/retailer_route");
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -21,9 +22,9 @@ app.use(express.json());
 app.use("/api/auth", auth_route);
 app.use("/api/farmer",farmer_route);
 app.use("/api/indivisual_transporter",indivisual_transporter_route);
+app.use("/api/retailer",retailer_route);
 // app.use("/api/middleman");
 // app.use("/api/admin");
-// app.use("/api/retailer");
 // app.use("/api/customer");
 
 // Start the server

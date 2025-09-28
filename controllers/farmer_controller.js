@@ -18,39 +18,18 @@ const registerFarmer = async (req, res) => {
     certifications,
   } = req.body;
 
-  if (!name || !contact || !location || !landSize) {
+  if (
+    !name ||
+    !contact ||
+    !location ||
+    !landSize ||
+    !password ||
+    !aadhar_number ||
+    !farming_exp ||
+    !prefered_crop_type ||
+    !certifications
+  ) {
     return res.status(400).json({ msg: "Missing required fields." });
-  }
-  if (aadhar_number.length !== 12) {
-    return res.status(400).json({ msg: "Aadhar number must be 12 digits." });
-  }
-  if (!/^\d{12}$/.test(aadhar_number)) {
-    return res
-      .status(400)
-      .json({ msg: "Aadhar number must contain only digits." });
-  }
-  if (!/^\d{10}$/.test(contact)) {
-    return res
-      .status(400)
-      .json({ msg: "Contact number must contain only digits." });
-  }
-  if (landSize <= 0) {
-    return res
-      .status(400)
-      .json({ msg: "Land size must be a positive number." });
-  }
-  if (farming_exp < 0) {
-    return res
-      .status(400)
-      .json({ msg: "Farming experience cannot be negative." });
-  }
-  if (contact.length !== 10) {
-    return res.status(400).json({ msg: "Contact number must be 10 digits." });
-  }
-  if (!password || password.length < 6) {
-    return res
-      .status(400)
-      .json({ msg: "Password is required and must be at least 6 characters." });
   }
 
   try {
@@ -119,14 +98,8 @@ const getFarmerProfile = async (req, res) => {
       return res.status(404).json({ msg: "Farmer profile not found" });
     }
     res.json({
-      name: user.name,
-      contact: user.contact,
-      location: user.location,
-      landSize: farmer.landSize,
-      farming_exp: farmer.farming_exp,
-      prefered_crop_type: farmer.prefered_crop_type,
-      certifications: farmer.certifications,
-      aadhar_number: farmer.aadhar_number,
+      user,
+      details: farmer,
     });
   } catch (err) {
     console.error(err.message);
@@ -153,17 +126,7 @@ const updateFarmerProfile = async (req, res) => {
       certifications,
       aadhar_number,
     } = req.body;
-
-    if (contact && contact.length !== 10) {
-      return res.status(400).json({ msg: "Contact number must be 10 digits." });
-    }
-
     if (contact) {
-      if (!/^\d{10}$/.test(contact)) {
-        return res
-          .status(400)
-          .json({ msg: "Contact number must contain only digits." });
-      }
       const contactCheck = await User.findOne({ contact });
       if (contactCheck && contactCheck._id.toString() !== userId) {
         return res.status(400).json({
@@ -172,33 +135,12 @@ const updateFarmerProfile = async (req, res) => {
       }
     }
     if (aadhar_number) {
-      if (aadhar_number.length !== 12) {
-        return res
-          .status(400)
-          .json({ msg: "Aadhar number must be 12 digits." });
-      }
-      if (!/^\d{12}$/.test(aadhar_number)) {
-        return res
-          .status(400)
-          .json({ msg: "Aadhar number must contain only digits." });
-      }
       const aadharCheck = await Farmer.findOne({ aadhar_number });
       if (aadharCheck && aadharCheck.user_id.toString() !== userId) {
         return res.status(400).json({
           msg: "This Aadhar number is already registered by another user.",
         });
       }
-    }
-
-    if (landSize !== undefined && landSize <= 0) {
-      return res
-        .status(400)
-        .json({ msg: "Land size must be a positive number." });
-    }
-    if (farming_exp !== undefined && farming_exp < 0) {
-      return res
-        .status(400)
-        .json({ msg: "Farming experience cannot be negative." });
     }
 
     const userUpdate = {};
@@ -244,16 +186,7 @@ const updateFarmerProfile = async (req, res) => {
 
     res.json({
       msg: "Profile updated successfully",
-      Farmer: {
-        name: user.name,
-        contact: user.contact,
-        location: user.location,
-        landSize: farmer.landSize,
-        farming_exp: farmer.farming_exp,
-        prefered_crop_type: farmer.prefered_crop_type,
-        certifications: farmer.certifications,
-        aadhar_number: farmer.aadhar_number,
-      },
+      data: { user, details:farmer },
     });
   } catch (err) {
     if (originalUser) {
@@ -291,7 +224,7 @@ const updateFarmerProfile = async (req, res) => {
 const loginFarmer = async (req, res) => {
   const { contact, password } = req.body;
   if (!contact || !password) {
-    return res.status(400).json({ msg: "Please provide contact and password" });
+    return res.status(400).json({ msg: "Please enter all fields" });
   }
   try {
     const user = await User.findOne({ contact, role: "farmer" });

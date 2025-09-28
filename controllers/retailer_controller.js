@@ -1,22 +1,22 @@
 const bcrypt = require("bcryptjs");
 const User = require("../models/Users");
-const Transporter = require("../models/Indivisuals_Trasnporter");
+const Retailer = require("../models/Retailer");
 const { generateToken } = require("../config/jwt");
 
-const registerIndivisualTransporter = async (req, res) => {
+const registerRetailer = async (req, res) => {
   let user = null;
-  let transporterProfile = null;
+  let retailerProfile = null;
 
   const {
     name,
     contact,
     location,
     password,
-    vehicle_number,
+    shop_name,
+    shop_address,
+    gst_number,
     license_number,
-    vehicle_type,
-    capacity_tons,
-    available,
+    aadhar_number,
   } = req.body;
 
   try {
@@ -25,10 +25,11 @@ const registerIndivisualTransporter = async (req, res) => {
       !contact ||
       !location ||
       !password ||
-      !vehicle_number ||
+      !shop_name ||
       !license_number ||
-      !vehicle_type ||
-      !capacity_tons
+      !shop_address ||
+      !gst_number ||
+      !aadhar_number
     ) {
       return res.status(400).json({ msg: "Missing required fields." });
     }
@@ -40,17 +41,19 @@ const registerIndivisualTransporter = async (req, res) => {
         .status(400)
         .json({ msg: "Contact number already registered." });
     }
-    let existingVehicle = await Transporter.findOne({ vehicle_number });
-    if (existingVehicle) {
-      return res
-        .status(400)
-        .json({ msg: "Vehicle number already registered." });
+    let existingGstNumber = await Retailer.findOne({ gst_number });
+    if (existingGstNumber) {
+      return res.status(400).json({ msg: "Gst number already registered." });
     }
-    let existingLicense = await Transporter.findOne({ license_number });
+    let existingLicense = await Retailer.findOne({ license_number });
     if (existingLicense) {
       return res
         .status(400)
         .json({ msg: "License number already registered." });
+    }
+    let existingAadhar = await Retailer.findOne({ aadhar_number });
+    if (existingAadhar) {
+      return res.status(400).json({ msg: "Aadhar number already registered." });
     }
 
     // Hash the password before storing
@@ -63,40 +66,38 @@ const registerIndivisualTransporter = async (req, res) => {
       password: hashedPassword,
       contact,
       location,
-      role: "indivisual_transporter",
+      role: "retailer",
     });
 
-    transporterProfile = await Transporter.create({
+    retailerProfile = await Retailer.create({
       user_id: user._id,
-      vehicle_number,
+      shop_name,
+      shop_address,
+      gst_number,
       license_number,
-      vehicle_type,
-      capacity_tons,
-      available: available !== undefined ? available : true,
+      aadhar_number,
     });
 
     const token = generateToken(user);
     return res.status(201).json({
-      msg: "Transporter registered successfully.",
+      msg: "Retailer registered successfully.",
       token,
     });
   } catch (err) {
     if (user) {
       await User.findByIdAndDelete(user._id);
-      console.log("Deleted user due to error during transporter registration.");
+      console.log("Deleted user due to error during Retailer registration.");
     }
-    if (transporterProfile && transporterProfile._id) {
-      await Transporter.findByIdAndDelete(transporterProfile._id);
-      console.log(
-        "Deleted transporter profile due to error during registration."
-      );
+    if (retailerProfile && retailerProfile._id) {
+      await Retailer.findByIdAndDelete(retailerProfile._id);
+      console.log("Deleted Retailer profile due to error during registration.");
     }
     console.error(err);
     return res.status(500).json({ msg: "Server error." });
   }
 };
 
-const loginIndivisualTransporter = async (req, res) => {
+const loginRetailer = async (req, res) => {
   try {
     const { contact, password } = req.body;
     if (!contact || !password) {
@@ -105,7 +106,7 @@ const loginIndivisualTransporter = async (req, res) => {
 
     const user = await User.findOne({
       contact,
-      role: "indivisual_transporter",
+      role: "retailer",
     });
     if (!user) {
       return res.status(400).json({ msg: "Invalid credentials." });
@@ -124,22 +125,22 @@ const loginIndivisualTransporter = async (req, res) => {
   }
 };
 
-const getIndivisualTransporterProfile = async (req, res) => {
+const getRetailerProfile = async (req, res) => {
   try {
     let userId = req.userId;
     if (!userId) {
       return res.status(401).json({ msg: "Unauthorized: No user ID found" });
     }
     const user = await User.findById({ _id: userId });
-    const transporter = await Transporter.findOne({
+    const retailer = await Retailer.findOne({
       user_id: userId,
     });
-    if (!user || !transporter) {
-      return res.status(404).json({ msg: "Transporter profile not found" });
+    if (!user || !retailer) {
+      return res.status(404).json({ msg: "Retailer profile not found" });
     }
     res.json({
       user,
-      details: transporter,
+      details: retailer,
     });
   } catch (err) {
     console.error(err.message);
@@ -147,9 +148,9 @@ const getIndivisualTransporterProfile = async (req, res) => {
   }
 };
 
-const updateIndivisualTransporterProfile = async (req, res) => {
+const updateRetailerProfile = async (req, res) => {
   let originalUser = null;
-  let originalTransporter = null;
+  let originalRetailer = null;
   let userId = req.userId;
   try {
     if (!userId) {
@@ -160,17 +161,17 @@ const updateIndivisualTransporterProfile = async (req, res) => {
       name,
       contact,
       location,
-      vehicle_number,
+      shop_name,
+      shop_address,
+      gst_number,
       license_number,
-      vehicle_type,
-      capacity_tons,
-      available,
+      aadhar_number,
     } = req.body;
 
     // Update fields if provided
 
     const userUpdate = {};
-    const transporterUpdate = {};
+    const retailerUpdate = {};
 
     if (name) userUpdate.name = name;
     if (contact) {
@@ -183,45 +184,47 @@ const updateIndivisualTransporterProfile = async (req, res) => {
       userUpdate.contact = contact;
     }
     if (location) userUpdate.location = location;
-    if (vehicle_number) {
-      let vechileCheck = await Transporter.findOne({ vehicle_type });
-      if (vechileCheck && vechileCheck.user_id.toString() !== userId) {
+
+    if (shop_name) retailerUpdate.shop_name = shop_name;
+    if (shop_address) retailerUpdate.shop_address = shop_address;
+    if (gst_number) {
+      let gstCheck = await Retailer.findOne({ gst_number });
+      if (gstCheck && gstCheck.user_id.toString() !== userId) {
         return res
           .status(400)
-          .json({ msg: "Vehicle number already registered by another user." });
+          .json({ msg: "Gst number already registered by another user." });
       }
-      transporterUpdate.vehicle_number = vehicle_number;
+      retailerUpdate.gst_number = gst_number;
     }
-
+    if (aadhar_number) {
+      let aadharCheck = await Retailer.findOne({ aadhar_number });
+      if (aadharCheck && aadharCheck.user_id.toString() !== userId) {
+        return res
+          .status(400)
+          .json({ msg: "Aadhar number already registered by another user." });
+      }
+      retailerUpdate.aadhar_number = aadhar_number;
+    }
     if (license_number) {
-      let licenseCheck = await Transporter.findOne({ license_number });
+      let licenseCheck = await Retailer.findOne({ license_number });
       if (licenseCheck && licenseCheck.user_id.toString() !== userId) {
         return res
           .status(400)
           .json({ msg: "License number already registered by another user." });
       }
-      transporterUpdate.license_number = license_number;
+      retailerUpdate.license_number = license_number;
     }
-
-    if (vehicle_type) {
-      transporterUpdate.vehicle_type = vehicle_type;
-    }
-    if (capacity_tons) {
-      transporterUpdate.capacity_tons = capacity_tons;
-    }
-    if (available !== undefined) transporterUpdate.available = available;
-
     // already created user and indivisual transporter
     originalUser = await User.findById({
       _id: userId,
-      role: "indivisual_transporter",
+      role: "retailer",
     });
-    originalTransporter = await Transporter.findOne({
+    originalRetailer = await Retailer.findOne({
       user_id: userId,
     });
 
-    if (!originalUser || !originalTransporter) {
-      return res.status(404).json({ msg: "Transporter profile not found" });
+    if (!originalUser || !originalRetailer) {
+      return res.status(404).json({ msg: "Retailer profile not found" });
     }
 
     // update User and indivisual transporter fields
@@ -230,20 +233,20 @@ const updateIndivisualTransporterProfile = async (req, res) => {
       runValidators: true,
     });
 
-    const transporter = await Transporter.findOneAndUpdate(
+    const retailer = await Retailer.findOneAndUpdate(
       { user_id: userId },
-      transporterUpdate,
+      retailerUpdate,
       { new: true, runValidators: true }
     );
 
-    if (!user || !transporter) {
+    if (!user || !retailer) {
       // rollback
       throw new Error("Update operation failed or profile became missing.");
     }
 
     res.json({
-      msg: "Transporter profile updated successfully.",
-      data: { user, details:transporter },
+      msg: "Retailer profile updated successfully.",
+      data: { user, details: retailer },
     });
   } catch (err) {
     // rollback in case of error
@@ -253,20 +256,20 @@ const updateIndivisualTransporterProfile = async (req, res) => {
         runValidators: true,
       });
     }
-    if (originalTransporter && userId) {
-      await Transporter.findOneAndUpdate(
-        { user_id: userId },
-        originalTransporter,
-        { new: false, runValidators: true }
-      );
+    if (originalRetailer && userId) {
+      await Retailer.findOneAndUpdate({ user_id: userId }, originalRetailer, {
+        new: false,
+        runValidators: true,
+      });
     }
     if (err.code === 11000) {
       const field = Object.keys(err.keyPattern || {})[0];
       let msg = `The provided value is already in use.`;
 
       if (field === "contact") msg = "Contact number already registered.";
-      if (field === "vehicle_number")
-        msg = "Vehicle number already registered.";
+      if (field === "gst_number") msg = "Gst number already registered.";
+      if (field === "aadhar_number") msg = "Aadhar number already registered.";
+      if (field === "license_number")msg = "License number already registered.";
 
       return res.status(400).json({ msg });
     }
@@ -276,8 +279,8 @@ const updateIndivisualTransporterProfile = async (req, res) => {
 };
 
 module.exports = {
-  registerIndivisualTransporter,
-  loginIndivisualTransporter,
-  getIndivisualTransporterProfile,
-  updateIndivisualTransporterProfile,
+  registerRetailer,
+  loginRetailer,
+  getRetailerProfile,
+  updateRetailerProfile,
 };
